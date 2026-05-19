@@ -2,17 +2,17 @@
 
 # Deploy Your Own Hermes Agent
 
-Your own AI agent, running 24/7, talking to you on Telegram. Think OpenClaw, but **better**. Hermes Agent by Nous Research comes with tool use, persistent memory, scheduled tasks, and multi-platform messaging — and this template gives you the whole thing with one click.
+Your own AI agent, running 24/7, talking to you on Telegram and Discord. Hermes Agent by Nous Research comes with tool use, persistent memory, scheduled tasks, and multi-platform messaging — and this template gives you the whole thing with one click.
 
 ## About
 
-No YAML files. No SSH. No "just clone the repo and figure it out." This template gives you a fully managed Hermes Agent accessible from your browser. Add API keys, connect messaging platforms, manage sessions, view analytics, and schedule cron jobs — all from the dashboard. The messaging gateway runs alongside it and automatically restarts when you change settings. Attach a Railway volume and your data sticks around forever.
+No YAML files. No SSH. No "just clone the repo and figure it out." This template gives you a fully managed Hermes Agent accessible from your browser. Add API keys, connect messaging platforms, manage sessions, view analytics, and schedule cron jobs — all from the dashboard. The messaging gateway runs alongside the dashboard so your bots are always online. Attach a Railway volume and your data sticks around forever.
 
 ## Getting Started
 
 ### 1. Deploy to Railway
 
-Click the **Deploy on Railway** button, set a `DASHBOARD_PASSWORD`, and deploy. Once it's live, open your Railway-provided URL and log in.
+Click the **Deploy on Railway** button, set `DASHBOARD_PASSWORD`, and deploy. Once it's live, open your Railway-provided URL and log in.
 
 ### 2. Add an LLM Provider
 
@@ -30,7 +30,6 @@ Your agent needs an AI model to work. [OpenRouter](https://openrouter.ai/) is th
 4. In the Hermes dashboard, go to the **API Keys** page
 5. Paste the token into the `TELEGRAM_BOT_TOKEN` field and save
 6. Also set `GATEWAY_ALLOW_ALL_USERS=true` (or set `TELEGRAM_ALLOWED_USERS` to your Telegram user ID for restricted access)
-7. The gateway will restart automatically — check the status widget in the bottom-right corner
 
 ### 4. Test It
 
