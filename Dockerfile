@@ -15,6 +15,9 @@ WORKDIR /opt/hermes-agent
 RUN uv venv venv --python 3.11 \
     && VIRTUAL_ENV=/opt/hermes-agent/venv uv pip install --no-cache-dir -e ".[all]"
 
+# Pre-build the web UI so dashboard starts instantly (no npm on first run)
+RUN cd web && npm ci && npm run build
+
 ENV PATH="/opt/hermes-agent/venv/bin:$PATH"
 
 RUN mkdir -p /root/.hermes/{cron,sessions,logs,memories,skills,pairing,hooks,image_cache,audio_cache} \
