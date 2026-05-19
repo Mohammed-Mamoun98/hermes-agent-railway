@@ -7,9 +7,13 @@ import os
 import secrets
 import string
 import time
+import aiohttp
 from aiohttp import web, ClientSession, WSMsgType
 
-UPSTREAM = "http://127.0.0.1:9119"
+UPSTREAM_HOST = os.environ.get("DASHBOARD_HOST", "127.0.0.1")
+UPSTREAM_PORT = int(os.environ.get("DASHBOARD_PORT", "9119"))
+UPSTREAM = f"http://{UPSTREAM_HOST}:{UPSTREAM_PORT}"
+UPSTREAM_WS = f"ws://{UPSTREAM_HOST}:{UPSTREAM_PORT}"
 USERNAME = os.environ.get("DASHBOARD_USER", "admin")
 PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")
 SECRET = secrets.token_bytes(32)
@@ -146,6 +150,15 @@ async def auth_middleware(request, handler):
 
 
 async def health(request):
+    try:
+        timeout = aiohttp.ClientTimeout(total=2)
+        async with ClientSession(timeout=timeout) as session:
+            async with session.get(f"{UPSTREAM}/api/health") as resp:
+                if resp.status != 200:
+                    raise RuntimeError("upstream dashboard unhealthy")
+    except Exception:
+        return web.json_response({"status": "starting"}, status=503)
+
     return web.json_response({"status": "ok"})
 
 
@@ -154,22 +167,25 @@ async def proxy_ws(request):
     await ws_client.prepare(request)
 
     async with ClientSession() as session:
-        url = f"ws://127.0.0.1:9119{request.path_qs}"
-        async with session.ws_connect(url) as ws_upstream:
-            async def forward(src, dst):
-                async for msg in src:
-                    if msg.type == WSMsgType.TEXT:
-                        await dst.send_str(msg.data)
-                    elif msg.type == WSMsgType.BINARY:
-                        await dst.send_bytes(msg.data)
-                    elif msg.type in (WSMsgType.CLOSE, WSMsgType.ERROR):
-                        break
+        url = f"{UPSTREAM_WS}{request.path_qs}"
+        try:
+            async with session.ws_connect(url) as ws_upstream:
+                async def forward(src, dst):
+                    async for msg in src:
+                        if msg.type == WSMsgType.TEXT:
+                            await dst.send_str(msg.data)
+                        elif msg.type == WSMsgType.BINARY:
+                            await dst.send_bytes(msg.data)
+                        elif msg.type in (WSMsgType.CLOSE, WSMsgType.ERROR):
+                            break
 
-            import asyncio
-            await asyncio.gather(
-                forward(ws_client, ws_upstream),
-                forward(ws_upstream, ws_client),
-            )
+                import asyncio
+                await asyncio.gather(
+                    forward(ws_client, ws_upstream),
+                    forward(ws_upstream, ws_client),
+                )
+        except Exception:
+            await ws_client.close(code=1013, message=b"dashboard unavailable")
 
     return ws_client
 
@@ -183,13 +199,19 @@ async def proxy(request):
         headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "transfer-encoding")}
 
         body = await request.read()
-        async with session.request(
-            request.method, url, headers=headers, data=body, allow_redirects=False,
-        ) as resp:
-            excluded = {"transfer-encoding", "content-encoding", "content-length"}
-            proxy_headers = {k: v for k, v in resp.headers.items() if k.lower() not in excluded}
-            content = await resp.read()
-            return web.Response(status=resp.status, headers=proxy_headers, body=content)
+        try:
+            async with session.request(
+                request.method, url, headers=headers, data=body, allow_redirects=False,
+            ) as resp:
+                excluded = {"transfer-encoding", "content-encoding", "content-length"}
+                proxy_headers = {k: v for k, v in resp.headers.items() if k.lower() not in excluded}
+                content = await resp.read()
+                return web.Response(status=resp.status, headers=proxy_headers, body=content)
+        except Exception:
+            return web.Response(
+                status=503,
+                text="Hermes dashboard is starting or unavailable. Try again in a moment.",
+            )
 
 
 def create_app():
