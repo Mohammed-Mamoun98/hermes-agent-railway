@@ -15,28 +15,13 @@ if [ "$AUTO_UPDATE" = "true" ]; then
   fi
 fi
 
+# Hermes starts the dashboard as a supported side-process when enabled.
+export HERMES_DASHBOARD="${HERMES_DASHBOARD:-1}"
+export HERMES_DASHBOARD_HOST="${HERMES_DASHBOARD_HOST:-127.0.0.1}"
+export HERMES_DASHBOARD_PORT="${HERMES_DASHBOARD_PORT:-9119}"
+
 # Start the messaging gateway in the background
 hermes gateway run &
-
-# Start the dashboard on localhost unless something is already using the port.
-if python3 - <<'PY'
-import socket
-sock = socket.socket()
-sock.settimeout(1)
-try:
-    sock.connect(("127.0.0.1", 9119))
-except OSError:
-    raise SystemExit(1)
-else:
-    raise SystemExit(0)
-finally:
-    sock.close()
-PY
-then
-  echo "Dashboard already listening on 127.0.0.1:9119"
-else
-  hermes dashboard --host 127.0.0.1 --port 9119 --no-open &
-fi
 
 # Start the auth proxy (listens on $PORT, proxies to dashboard)
 exec python /auth_proxy.py
