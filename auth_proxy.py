@@ -7,7 +7,6 @@ import os
 import secrets
 import string
 import time
-import aiohttp
 from aiohttp import web, ClientSession, WSMsgType
 
 UPSTREAM_HOST = os.environ.get("DASHBOARD_HOST", "127.0.0.1")
@@ -150,15 +149,6 @@ async def auth_middleware(request, handler):
 
 
 async def health(request):
-    try:
-        timeout = aiohttp.ClientTimeout(total=2)
-        async with ClientSession(timeout=timeout) as session:
-            async with session.get(f"{UPSTREAM}/api/health") as resp:
-                if resp.status != 200:
-                    raise RuntimeError("upstream dashboard unhealthy")
-    except Exception:
-        return web.json_response({"status": "starting"}, status=503)
-
     return web.json_response({"status": "ok"})
 
 
