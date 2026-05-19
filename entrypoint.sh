@@ -19,7 +19,7 @@ fi
 hermes gateway run &
 
 # Start the dashboard on localhost (web UI pre-built in Docker image)
-hermes dashboard --host 127.0.0.1 --port 9119 --no-open --skip-build &
+hermes dashboard --host 127.0.0.1 --port 9119 --no-open &
 
 # Start the auth proxy (listens on $PORT, proxies to dashboard)
 exec python /auth_proxy.py
